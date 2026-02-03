@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Border Overlay Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Badges-Be-Done</h1>
+        <p class="subtitle">Fire. Forget. Give the Gauntlet fiends something to do.</p>
+
+        <div class="upload-section">
+            <h2>1. Upload Border Image</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="borderInput" accept="image/png,image/webp">
+                <label for="borderInput" class="file-button">Choose Border Image</label>
+            </div>
+            <span class="file-info" id="borderInfo">No file selected</span>
+            <div class="border-preview" id="borderPreview">
+                <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Border Preview:</p>
+                <img id="borderPreviewImg" alt="Border preview">
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <h2>2. Upload Background Image (Optional)</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="backgroundInput" accept="image/*">
+                <label for="backgroundInput" class="file-button">Choose Background Image</label>
+            </div>
+            <span class="file-info" id="backgroundInfo">No file selected</span>
+            <div class="border-preview" id="backgroundPreview">
+                <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Background Preview:</p>
+                <img id="backgroundPreviewImg" alt="Background preview">
+            </div>
+            <div style="margin-top: 15px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+                    <input type="checkbox" id="enableSlicing" style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Enable Slicing (generates both behind-border and in-front-of-border versions)</span>
+                </label>
+                <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px; margin-left: 30px;">
+                    When enabled, areas where the border and foreground overlap will be split into two separate images.
+                </p>
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <h2>3. Upload Images to Process</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="imagesInput" accept="image/*" multiple>
+                <label for="imagesInput" class="file-button">Choose Images</label>
+            </div>
+            <span class="file-info" id="imagesInfo">No files selected</span>
+            <br>
+            <button class="process-button" id="processButton" disabled>Process Images</button>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="results" id="results">
+            <h2>Processed Images</h2>
+            <div class="image-grid" id="imageGrid"></div>
+            <button class="download-all" id="downloadAll">Download All as ZIP</button>
+            <button class="download-all" id="downloadSaveAs" style="margin-left: 10px;">Save As ZIP</button>
+            <button class="download-all" id="downloadIndividual" style="margin-left: 10px;">Download All (Individual)</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
