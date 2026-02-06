@@ -5,6 +5,7 @@ let removeBackgroundLib = null;
 let borderSourceImage = null;
 let generatedBorderImage = null;
 let generatedBackgroundImage = null;
+let processedCanvases = [];
 
 const borderInput = document.getElementById('borderInput');
 const borderInfo = document.getElementById('borderInfo');
@@ -218,6 +219,11 @@ function updateProcessButton() {
 }
 
 processButton.addEventListener('click', processImages);
+
+// Download button event listeners
+downloadAll.addEventListener('click', () => downloadAllAsZip(processedCanvases));
+downloadSaveAs.addEventListener('click', () => downloadAllAsZip(processedCanvases, true));
+downloadIndividual.addEventListener('click', () => downloadAllIndividually(processedCanvases));
 
 // Generate simple border
 function generateBorder() {
@@ -986,12 +992,22 @@ function updateProgress(current, total, message) {
 }
 
 async function processImages() {
-    if (!sourceImages.length) return;
+    console.log('processImages called');
+    console.log('sourceImages.length:', sourceImages.length);
     
+    if (!sourceImages.length) {
+        console.log('No source images, returning');
+        return;
+    }
+    
+    console.log('Starting processing...');
     status.textContent = 'Processing images...';
     progressContainer.style.display = 'block';
     results.style.display = 'block';
     imageGrid.innerHTML = '';
+    
+    // Clear previous results
+    processedCanvases = [];
     
     const total = sourceImages.length;
     let processed = 0;
@@ -1002,12 +1018,20 @@ async function processImages() {
     const bgMode = bgColorMode.value;
     const bgCount = parseInt(bgColorCount.value);
     
+    console.log('Background settings:', { shouldCycleBackgrounds, bgStyle, bgMode, bgCount });
+    
     for (let i = 0; i < sourceImages.length; i++) {
-        const sourceImage = sourceImages[i];
+        console.log(`Processing image ${i + 1}/${total}`);
+        const sourceFile = sourceImages[i];
+        
+        // Load file into an Image object
+        const sourceImage = await loadImage(sourceFile);
+        console.log('Image loaded:', sourceImage);
         
         // Generate unique background for each image if cycling is enabled
         let currentBackgroundImage = backgroundImage;
         if (shouldCycleBackgrounds && generatedBackgroundImage) {
+            console.log('Generating cycled background...');
             const seed = generateSeed();
             const rng = createSeededRNG(seed);
             
@@ -1033,41 +1057,113 @@ async function processImages() {
             });
         }
         
-        // Process the image with current background
-        const canvas = createProcessedImage(sourceImage, currentBackgroundImage);
-        processedCanvases.push({
-            canvas: canvas,
-            filename: sourceImage.name,
-            suffix: ''
-        });
+        // Process image with current background
+        console.log('Creating processed image...');
         
-        // Add to UI
-        const container = document.createElement('div');
-        container.className = 'image-item';
-        container.appendChild(canvas);
-        
-        const label = document.createElement('div');
-        label.textContent = `Image ${i + 1}`;
-        label.style.color = 'var(--text-secondary)';
-        label.style.fontSize = '0.8em';
-        label.style.marginTop = '5px';
-        container.appendChild(label);
-        
-        const downloadButton = document.createElement('button');
-        downloadButton.textContent = 'Download';
-        downloadButton.className = 'download-individual';
-        downloadButton.onclick = () => {
-            downloadCanvas(canvas, `processed_${sourceImage.name.replace(/\.[^/.]+$/, '')}.png`);
-        };
-        container.appendChild(downloadButton);
-        
-        imageGrid.appendChild(container);
+        if (enableSlicing.checked) {
+            // Detect slices and create all variants
+            const slices = detectSlices(sourceImage);
+            console.log(`Found ${slices.length} slices`);
+            
+            // Create base image (all behind)
+            const allBehindCanvas = createSlicedImage(sourceImage, 'all-behind', slices, currentBackgroundImage);
+            processedCanvases.push({
+                canvas: allBehindCanvas,
+                filename: sourceFile.name,
+                suffix: '_all_behind'
+            });
+            
+            // Add to UI
+            const container0 = document.createElement('div');
+            container0.className = 'image-item';
+            container0.appendChild(allBehindCanvas);
+            const label0 = document.createElement('div');
+            label0.textContent = 'Base Badge';
+            label0.style.color = 'var(--text-secondary)';
+            label0.style.fontSize = '0.8em';
+            label0.style.marginTop = '5px';
+            container0.appendChild(label0);
+            
+            const downloadButton0 = document.createElement('button');
+            downloadButton0.textContent = 'Download';
+            downloadButton0.className = 'download-individual';
+            downloadButton0.onclick = () => {
+                downloadCanvas(allBehindCanvas, `processed_${sourceFile.name.replace(/\.[^/.]+$/, '')}_all_behind.png`);
+            };
+            container0.appendChild(downloadButton0);
+            
+            imageGrid.appendChild(container0);
+            
+            // Create individual slice variants
+            for (let sliceIdx = 0; sliceIdx < slices.length; sliceIdx++) {
+                const sliceCanvas = createSlicedImage(sourceImage, 'single-front', slices, sliceIdx, currentBackgroundImage);
+                processedCanvases.push({
+                    canvas: sliceCanvas,
+                    filename: sourceFile.name,
+                    suffix: `_slice${sliceIdx + 1}_front`
+                });
+                
+                // Add to UI
+                const container = document.createElement('div');
+                container.className = 'image-item';
+                container.appendChild(sliceCanvas);
+                const label = document.createElement('div');
+                const pixelCount = slices[sliceIdx].size;
+                label.textContent = `Slice ${sliceIdx + 1} (${pixelCount}px)`;
+                label.style.color = 'var(--text-secondary)';
+                label.style.fontSize = '0.8em';
+                label.style.marginTop = '5px';
+                container.appendChild(label);
+                
+                const downloadButton = document.createElement('button');
+                downloadButton.textContent = 'Download';
+                downloadButton.className = 'download-individual';
+                downloadButton.onclick = () => {
+                    downloadCanvas(sliceCanvas, `processed_${sourceFile.name.replace(/\.[^/.]+$/, '')}_slice${sliceIdx + 1}_front.png`);
+                };
+                container.appendChild(downloadButton);
+                
+                imageGrid.appendChild(container);
+            }
+        } else {
+            // Simple processing without slicing
+            const canvas = createProcessedImage(sourceImage, currentBackgroundImage);
+            processedCanvases.push({
+                canvas: canvas,
+                filename: sourceFile.name,
+                suffix: ''
+            });
+            
+            // Add to UI
+            const container = document.createElement('div');
+            container.className = 'image-item';
+            container.appendChild(canvas);
+            
+            const label = document.createElement('div');
+            label.textContent = `Image ${i + 1}`;
+            label.style.color = 'var(--text-secondary)';
+            label.style.fontSize = '0.8em';
+            label.style.marginTop = '5px';
+            container.appendChild(label);
+            
+            const downloadButton = document.createElement('button');
+            downloadButton.textContent = 'Download';
+            downloadButton.className = 'download-individual';
+            downloadButton.onclick = () => {
+                downloadCanvas(canvas, `processed_${sourceFile.name.replace(/\.[^/.]+$/, '')}.png`);
+            };
+            container.appendChild(downloadButton);
+            
+            imageGrid.appendChild(container);
+        }
         
         processed++;
         progressText.textContent = `Processed ${processed}/${total} images`;
         progressBar.style.width = `${(processed / total) * 100}%`;
+        console.log(`Progress: ${processed}/${total}`);
     }
     
+    console.log('Processing complete!');
     status.textContent = 'Processing complete!';
     setTimeout(() => {
         progressContainer.style.display = 'none';
