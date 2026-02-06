@@ -1,57 +1,194 @@
+Got it — you want this to read like **approachable tool overview copy**, not marketing hype and not a spec sheet. Think *itch page / GitHub readme casual mode*.
+
+Below is a cleaned rewrite with:
+
+* Plain language
+* Shorter sentences
+* Less feature stacking
+* Still complete enough to understand what it does
+
+---
+
 # Badges-Be-Done!
 
-A simple web tool for creating multi-layered badges with automatic slicing and batch processing capabilities.
+A simple web tool for making layered 64×64 badges.
+Upload images or generate borders and backgrounds using math-based patterns.
+Then export finished badges or layered variants.
 
-## Features
+---
 
-- **Multi-layer compositing**: Background + Foreground + Border + Individual slices
-- **Automatic slicing**: Detects and creates separate layers for complex badge designs
-- **Batch processing**: Handle multiple images with consistent naming
-- **Flexible downloads**: ZIP, individual files, or Save As options
-- **Smart naming**: BadgeXXX-YYY format with 3-digit padding for large batches
+## What It Does
 
-## How to Use
+You can:
 
-1. **Upload Border Image**: Choose a transparent PNG or WebP file for the border overlay
-2. **Upload Background Image** (Optional): Add a background layer that shows through transparent areas
-3. **Enable Slicing** (Optional): Check to generate individual slice layers on top of the base badge
-4. **Upload Images**: Select one or more foreground images to process
-5. **Process**: Click "Process Images" to generate all layer combinations
-6. **Download**: Choose from three download options:
-   - **Download All as ZIP**: Quick download to default folder
-   - **Save As ZIP**: Choose exact location (Chrome/Edge only)
-   - **Download All (Individual)**: Separate PNG files with BadgeXXX-YYY naming
+* Upload foreground art (characters, items, screenshots, etc.)
+* Upload or generate borders
+* Upload or generate backgrounds
+* Automatically cut out small “breakout” pieces where art overlaps the border
+* Batch process multiple images
+* Download everything as PNGs or ZIP
 
-## Output Structure
+Everything runs locally in your browser.
 
-Each processed image generates multiple layers:
-- **BadgeXXX-000.png**: Background + Foreground + Border (base badge)
-- **BadgeXXX-001.png**: Background + Foreground + Border + Slice 1
-- **BadgeXXX-002.png**: Background + Foreground + Border + Slice 2
-- etc.
+---
 
-Where:
-- **XXX** = Foreground image number (001, 002, 003...)
-- **YYY** = Layer index (000 = border top, 001+ = individual slices)
+## Borders
 
-## Technical Details
+You can either upload a border image or generate one.
 
-- **Output Size**: 64x64 pixels for all processed images
-- **Supported Formats**: 
-  - Border: PNG, WebP (transparent recommended)
-  - Background: Any image format
-  - Source: Any image format supported by browsers
-- **Processing**: Client-side only, no server uploads required
-- **Browser Support**: Save As requires Chrome/Edge 86+, others fall back gracefully
+Border width can be **2–5 pixels**, leaving a center area of:
 
-## File System Access
+* 60×60 interior (2px border)
+* 54×54 interior (5px border)
 
-The "Save As ZIP" feature uses the File System Access API for modern browsers, allowing you to choose the exact save location. Other browsers will use the standard download behavior.
+### Basic Border Styles
 
-## Deployment
+* Solid
+* Dashed
+* Dotted
+* Checkerboard
+* Drop shadow
+* Multi-color rings
+* Dot + dash mix
 
-Ready to deploy to GitHub Pages as-is. No build process required. Simply push to a repository and enable GitHub Pages from the repository settings.
+### Math Pattern Borders
+
+These generate repeating patterns using coordinate math:
+
+* Axial stripes
+* Bitplane slice patterns
+* Constant stroke
+* Edge gradient bands
+* Manhattan distance (diamond rings)
+* Parity / checker variants
+* Prime modulation
+* Radial ring distance
+* Sawtooth edge marching
+* XOR interference noise
+
+---
+
+## Colors
+
+You can use **1–3 colors**.
+
+Color options:
+
+* Pick manually
+* Extract from uploaded image (tries to avoid greys/blacks)
+* Random palette generation
+
+---
+
+## Backgrounds
+
+You can upload a background image or generate one.
+
+Generated backgrounds are low-detail on purpose so foreground art stays readable.
+
+### Background Pattern Types
+
+* Cellular soft noise
+* Concentric polygon rings
+* Directional drift flow
+* Organic flow noise
+* Galaxy swirl noise
+* Low-frequency wave interference
+* Soft radial falloff
+* Spiral swirl
+* Starburst harmonic
+* Sparse starfield
+
+Optional:
+
+* Cycle variations automatically when batch processing
+* Use same colors or generate new ones per image
+
+---
+
+## Slicing (Breakout Layers)
+
+This finds places where foreground art overlaps the border and lets you export versions where those pieces sit on top of the border.
+
+Good for:
+
+* Weapon tips
+* Hair strands
+* Cloth edges
+* Small detail overlaps
+
+### How It Works
+
+* Image is scaled to 64×64
+* Finds pixels where border and foreground both exist
+* Groups connected pixels into regions
+* Removes tiny noise (<3 pixels)
+* Keeps all real overlaps (3px or larger)
+
+Each region becomes an optional extra layer.
+
+---
+
+## Background Removal (Optional)
+
+For screenshots or images with solid backgrounds:
+
+* Detects if transparency already exists and skips if so
+* Uses AI segmentation to remove background
+* Runs locally
+* Usually ~1 second per image after model loads
+
+---
+
+## Typical Uses
+
+**Quick Badge**
+
+* Generate border
+* Add foreground
+* Export
+
+**Full Generated Badge**
+
+* Generate border
+* Generate background
+* Add foreground
+* Export
+
+**Screenshot Cleanup Pipeline**
+
+* Generate border
+* Generate background
+* Remove screenshot background
+* Slice overlaps
+* Export variants
+
+---
+
+## Output Files
+
+Example naming:
+
+```
+Badge001-000.png  ← Base badge
+Badge001-001.png  ← Breakout layer 1
+Badge001-002.png  ← Breakout layer 2
+```
+
+---
+
+## Technical Notes (Light Version)
+
+* Output size: 64×64
+* Processing: Browser only (no uploads to servers)
+* Border math uses global coordinates (0–63)
+* Backgrounds support seeded variation
+* Works with most browser image formats
+* Save-As works best in Chrome / Edge (fallback download exists)
+
+---
 
 ## License
 
-Open source - feel free to use and modify.
+Open source.
+Use it, modify it, break it, improve it.
