@@ -1,14 +1,3 @@
-Got it — you want this to read like **approachable tool overview copy**, not marketing hype and not a spec sheet. Think *itch page / GitHub readme casual mode*.
-
-Below is a cleaned rewrite with:
-
-* Plain language
-* Shorter sentences
-* Less feature stacking
-* Still complete enough to understand what it does
-
----
-
 # Badges-Be-Done!
 
 A simple web tool for making layered 64×64 badges.
