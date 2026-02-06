@@ -12,37 +12,234 @@
         <p class="subtitle">Fire. Forget. Give the Gauntlet fiends something to do.</p>
 
         <div class="upload-section">
-            <h2>1. Upload Border Image</h2>
-            <div class="file-input-wrapper">
-                <input type="file" id="borderInput" accept="image/png,image/webp">
-                <label for="borderInput" class="file-button">Choose Border Image</label>
+            <h2>1. Upload Border Image or Generate Simple Border</h2>
+            
+            <!-- Border Upload Option -->
+            <div class="border-option">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary); margin-bottom: 15px;">
+                    <input type="radio" name="borderMode" value="upload" id="borderUpload" checked style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Upload Border Image</span>
+                </label>
+                <div class="file-input-wrapper" id="uploadSection">
+                    <input type="file" id="borderInput" accept="image/png,image/webp">
+                    <label for="borderInput" class="file-button">Choose Border Image</label>
+                </div>
+                <span class="file-info" id="borderInfo">No file selected</span>
+                <div class="border-preview" id="borderPreview">
+                    <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Border Preview:</p>
+                    <img id="borderPreviewImg" alt="Border preview">
+                </div>
             </div>
-            <span class="file-info" id="borderInfo">No file selected</span>
-            <div class="border-preview" id="borderPreview">
-                <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Border Preview:</p>
-                <img id="borderPreviewImg" alt="Border preview">
+            
+            <!-- Simple Border Generation Option -->
+            <div class="border-option" style="margin-top: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary); margin-bottom: 15px;">
+                    <input type="radio" name="borderMode" value="generate" id="borderGenerate" style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Generate Simple Border</span>
+                </label>
+                
+                <div id="generateSection" style="display: none;">
+                    <!-- Optional source image for color extraction -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Optional: Upload Image for Color Ideas
+                        </label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="borderSourceInput" accept="image/*">
+                            <label for="borderSourceInput" class="file-button">Choose Source Image (Optional)</label>
+                        </div>
+                        <span class="file-info" id="borderSourceInfo">No file selected</span>
+                    </div>
+                    
+                    <!-- Manual border controls -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Border Width: <span id="borderWidthValue">3</span> pixels
+                        </label>
+                        <input type="range" id="borderWidth" min="2" max="5" value="3" style="width: 200px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Border Style:
+                        </label>
+                        <select id="borderStyle" style="padding: 8px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="axial">Axial Stripe</option>
+                            <option value="bitplane">Bitplane Slice</option>
+                            <option value="checkerboard">Checkerboard</option>
+                            <option value="constant">Constant Field</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                            <option value="dotdash">Dot-Dash Pattern</option>
+                            <option value="edge">Edge Gradient Band</option>
+                            <option value="manhattan">Manhattan Distance</option>
+                            <option value="multiring">Multi-Color Rings</option>
+                            <option value="parity">Parity Field (Checker)</option>
+                            <option value="prime">Prime Modulation</option>
+                            <option value="radial">Ring Distance Field</option>
+                            <option value="sawtooth">Sawtooth Edge</option>
+                            <option value="shadow">Drop Shadow</option>
+                            <option value="solid">Solid</option>
+                            <option value="xor">XOR Interference</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Number of Colors:
+                        </label>
+                        <select id="colorCount" style="padding: 8px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="1">1 Color</option>
+                            <option value="2">2 Colors</option>
+                            <option value="3">3 Colors</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Color Mode:
+                        </label>
+                        <select id="colorMode" style="padding: 8px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="manual">Manual Colors</option>
+                            <option value="extract">Extract from Image</option>
+                            <option value="random">Random Colors</option>
+                        </select>
+                    </div>
+                    
+                    <div id="manualColorSection" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Border Colors:
+                        </label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <input type="color" id="borderColor1" value="#ffffff" style="width: 60px; height: 35px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <span style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">Color 1</span>
+                            </div>
+                            <div id="color2Container" style="display: none; flex-direction: column; align-items: center;">
+                                <input type="color" id="borderColor2" value="#ff0000" style="width: 60px; height: 35px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <span style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">Color 2</span>
+                            </div>
+                            <div id="color3Container" style="display: none; flex-direction: column; align-items: center;">
+                                <input type="color" id="borderColor3" value="#00ff00" style="width: 60px; height: 35px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <span style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">Color 3</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="process-button" id="generateBorderButton" style="font-size: 0.9em; padding: 10px 20px;">Generate Border</button>
+                </div>
+                
+                <div class="border-preview" id="generatedBorderPreview" style="display: none;">
+                    <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Generated Border Preview:</p>
+                    <img id="generatedBorderPreviewImg" alt="Generated border preview">
+                </div>
             </div>
         </div>
 
         <div class="upload-section">
-            <h2>2. Upload Background Image (Optional)</h2>
-            <div class="file-input-wrapper">
-                <input type="file" id="backgroundInput" accept="image/*">
-                <label for="backgroundInput" class="file-button">Choose Background Image</label>
-            </div>
-            <span class="file-info" id="backgroundInfo">No file selected</span>
-            <div class="border-preview" id="backgroundPreview">
-                <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Background Preview:</p>
-                <img id="backgroundPreviewImg" alt="Background preview">
-            </div>
-            <div style="margin-top: 15px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
-                    <input type="checkbox" id="enableSlicing" style="width: auto; cursor: pointer;">
-                    <span style="font-weight: 600;">Enable Slicing (generates both behind-border and in-front-of-border versions)</span>
+            <h2>2. Upload Background Image or Generate Background</h2>
+            
+            <!-- Background Upload Option -->
+            <div class="border-option">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary); margin-bottom: 15px;">
+                    <input type="radio" name="backgroundMode" value="upload" id="backgroundUpload" checked style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Upload Background Image</span>
                 </label>
-                <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px; margin-left: 30px;">
-                    When enabled, areas where the border and foreground overlap will be split into two separate images.
-                </p>
+                <div class="file-input-wrapper" id="backgroundUploadSection">
+                    <input type="file" id="backgroundInput" accept="image/*">
+                    <label for="backgroundInput" class="file-button">Choose Background Image</label>
+                </div>
+                <span class="file-info" id="backgroundInfo">No file selected</span>
+                <div class="border-preview" id="backgroundPreview">
+                    <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Background Preview:</p>
+                    <img id="backgroundPreviewImg" alt="Background preview">
+                </div>
+            </div>
+            
+            <!-- Background Generation Option -->
+            <div class="border-option" style="margin-top: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary); margin-bottom: 15px;">
+                    <input type="radio" name="backgroundMode" value="generate" id="backgroundGenerate" style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Generate Background</span>
+                </label>
+                
+                <div id="backgroundGenerateSection" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Background Style:
+                        </label>
+                        <select id="backgroundStyle" style="padding: 8px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="bg1">Cellular Soft Noise</option>
+                            <option value="bg10">Starfield Sparse Distribution</option>
+                            <option value="bg2">Concentric Polygon Rings</option>
+                            <option value="bg3">Directional Drift Field</option>
+                            <option value="bg4">Flow Noise Field</option>
+                            <option value="bg5">Galaxy Noise Hybrid</option>
+                            <option value="bg6">Low-Frequency Wave Interference</option>
+                            <option value="bg7">Soft Radial Falloff</option>
+                            <option value="bg8">Spiral Swirl Field</option>
+                            <option value="bg9">Starburst Harmonic</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Number of Colors:
+                        </label>
+                        <select id="bgColorCount" style="padding: 8px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="2">2 Colors</option>
+                            <option value="3">3 Colors</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Color Mode:
+                        </label>
+                        <select id="bgColorMode" style="padding: 8px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="manual" selected>Manual Colors</option>
+                            <option value="extract">Extract from Image</option>
+                            <option value="random">Random Colors</option>
+                        </select>
+                    </div>
+                    
+                    <div id="bgManualColorSection" style="display: block; margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                            Manual Colors:
+                        </label>
+                        <div style="display: flex; gap: 15px; justify-content: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <input type="color" id="bgColor1" value="#1a1a2e" style="width: 60px; height: 35px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <span style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">Color 1</span>
+                            </div>
+                            <div id="bgColor2Container" style="display: flex; flex-direction: column; align-items: center;">
+                                <input type="color" id="bgColor2" value="#16213e" style="width: 60px; height: 35px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <span style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">Color 2</span>
+                            </div>
+                            <div id="bgColor3Container" style="display: none; flex-direction: column; align-items: center;">
+                                <input type="color" id="bgColor3" value="#0f3460" style="width: 60px; height: 35px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <span style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">Color 3</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="process-button" id="generateBackgroundButton" style="font-size: 0.9em; padding: 10px 20px;">Generate Background</button>
+                    
+                    <div style="margin-top: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+                            <input type="checkbox" id="cycleBackgrounds" style="width: auto; cursor: pointer;">
+                            <span style="font-weight: 600;">Cycle Backgrounds (different seed per image)</span>
+                        </label>
+                        <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px; margin-left: 30px;">
+                            Uses same background style and colors but generates unique variations for each processed image.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="border-preview" id="generatedBackgroundPreview" style="display: none;">
+                    <p style="color: #666; margin-bottom: 8px; font-size: 0.9em;">Generated Background Preview:</p>
+                    <img id="generatedBackgroundPreviewImg" alt="Generated background preview">
+                </div>
             </div>
         </div>
 
@@ -53,9 +250,36 @@
                 <label for="imagesInput" class="file-button">Choose Images</label>
             </div>
             <span class="file-info" id="imagesInfo">No files selected</span>
+            
+            <div style="margin-top: 15px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+                    <input type="checkbox" id="removeBackground" style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Remove Background Automatically</span>
+                </label>
+                <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px; margin-left: 30px;">
+                    Uses AI to detect and remove backgrounds. Images with existing transparency will be skipped.
+                    <br>
+                    <span style="color: var(--accent-primary); font-weight: 600;">⏱ Estimated time: ~1 second per image (first run downloads ~40MB model)</span>
+                </p>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-primary);">
+                    <input type="checkbox" id="enableSlicing" style="width: auto; cursor: pointer;">
+                    <span style="font-weight: 600;">Enable Slicing (generates breakout layer variations)</span>
+                </label>
+                <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px; margin-left: 30px;">
+                    Detects where foreground overlaps with border and creates separate layers for each overlap region (3px minimum, no size limit).
+                </p>
+            </div>
+            
             <br>
             <button class="process-button" id="processButton" disabled>Process Images</button>
             <div class="status" id="status"></div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText"></div>
+            </div>
         </div>
 
         <div class="results" id="results">
@@ -68,6 +292,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
