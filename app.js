@@ -1,7 +1,6 @@
 let borderImage = null;
 let backgroundImage = null;
 let sourceImages = [];
-let removeBackgroundLib = null;
 let borderSourceImage = null;
 let generatedBorderImage = null;
 let generatedBackgroundImage = null;
@@ -49,7 +48,6 @@ const generatedBackgroundPreview = document.getElementById('generatedBackgroundP
 const generatedBackgroundPreviewImg = document.getElementById('generatedBackgroundPreviewImg');
 const cycleBackgrounds = document.getElementById('cycleBackgrounds');
 const enableSlicing = document.getElementById('enableSlicing');
-const removeBackgroundCheckbox = document.getElementById('removeBackground');
 const imagesInput = document.getElementById('imagesInput');
 const imagesInfo = document.getElementById('imagesInfo');
 const processButton = document.getElementById('processButton');
@@ -532,15 +530,23 @@ function createDottedBorder(ctx, color, width) {
     
     for (let x = spacing; x < 64 - spacing; x += spacing) {
         for (let y = 0; y < width; y++) {
-            ctx.fillRect(x, y, width, width);
-            ctx.fillRect(x, 64 - width - y, width, width);
+            if (isBorderPixel(x, y, width)) {
+                ctx.fillRect(x, y, 1, 1);
+            }
+            if (isBorderPixel(x, 64 - 1 - y, width)) {
+                ctx.fillRect(x, 64 - 1 - y, 1, 1);
+            }
         }
     }
     
     for (let y = spacing; y < 64 - spacing; y += spacing) {
         for (let x = 0; x < width; x++) {
-            ctx.fillRect(x, y, width, width);
-            ctx.fillRect(64 - width - x, y, width, width);
+            if (isBorderPixel(x, y, width)) {
+                ctx.fillRect(x, y, 1, 1);
+            }
+            if (isBorderPixel(64 - 1 - x, y, width)) {
+                ctx.fillRect(64 - 1 - x, y, 1, 1);
+            }
         }
     }
 }
@@ -548,18 +554,17 @@ function createDottedBorder(ctx, color, width) {
 function createCheckerboardBorder(ctx, colors, width) {
     const color1 = colors[0] || [255, 255, 255];
     const color2 = colors[1] || [200, 200, 200];
-    const squareSize = Math.max(2, Math.floor(width / 2));
     
-    for (let x = 0; x < 64; x += squareSize) {
-        for (let y = 0; y < 64; y += squareSize) {
-            // Only draw on edges
-            if (x < width || x >= 64 - width || y < width || y >= 64 - width) {
-                const isEven = (Math.floor(x / squareSize) + Math.floor(y / squareSize)) % 2 === 0;
-                ctx.fillStyle = isEven ? 
-                    `rgba(${color1[0]}, ${color1[1]}, ${color1[2]}, 0.8)` : 
-                    `rgba(${color2[0]}, ${color2[1]}, ${color2[2]}, 0.8)`;
-                ctx.fillRect(x, y, squareSize, squareSize);
-            }
+    for (let x = 0; x < 64; x++) {
+        for (let y = 0; y < 64; y++) {
+            // Only draw on border pixels
+            if (!isBorderPixel(x, y, width)) continue;
+            
+            const isEven = (x + y) % 2 === 0;
+            ctx.fillStyle = isEven ? 
+                `rgba(${color1[0]}, ${color1[1]}, ${color1[2]}, 0.8)` : 
+                `rgba(${color2[0]}, ${color2[1]}, ${color2[2]}, 0.8)`;
+            ctx.fillRect(x, y, 1, 1);
         }
     }
 }
@@ -903,88 +908,6 @@ function hslToRgb(h, s, l) {
     ];
 }
 
-// Dynamically import background removal library
-async function loadBackgroundRemovalLib() {
-    if (!removeBackgroundLib) {
-        try {
-            const module = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/browser.mjs');
-            removeBackgroundLib = module;
-            return true;
-        } catch (error) {
-            console.error('Failed to load background removal library:', error);
-            return false;
-        }
-    }
-    return true;
-}
-
-// Check if image has transparency
-function hasTransparency(img) {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    
-    for (let i = 3; i < data.length; i += 4) {
-        if (data[i] < 255) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Remove background from image
-async function removeBackground(img, index, total) {
-    if (hasTransparency(img)) {
-        updateProgress(index, total, 'Skipped (already transparent)');
-        return img;
-    }
-    
-    updateProgress(index, total, 'Removing background...');
-    
-    try {
-        const loaded = await loadBackgroundRemovalLib();
-        if (!loaded) {
-            throw new Error('Library not loaded');
-        }
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        
-        const blob = await new Promise(resolve => canvas.toBlob(resolve));
-        
-        const resultBlob = await removeBackgroundLib.removeBackground(blob, {
-            progress: (key, current, total) => {
-                const percent = Math.round((current / total) * 100);
-                updateProgress(index, total, `Removing background... ${percent}%`);
-            }
-        });
-        
-        const url = URL.createObjectURL(resultBlob);
-        const resultImg = new Image();
-        await new Promise((resolve, reject) => {
-            resultImg.onload = resolve;
-            resultImg.onerror = reject;
-            resultImg.src = url;
-        });
-        URL.revokeObjectURL(url);
-        
-        updateProgress(index, total, 'Background removed!');
-        return resultImg;
-    } catch (error) {
-        console.error('Background removal failed:', error);
-        updateProgress(index, total, 'Background removal failed');
-        return img;
-    }
-}
-
 function updateProgress(current, total, message) {
     const percent = Math.round((current / total) * 100);
     progressBar.style.setProperty('--progress', `${percent}%`);
@@ -1028,6 +951,9 @@ async function processImages() {
         const sourceImage = await loadImage(sourceFile);
         console.log('Image loaded:', sourceImage);
         
+        // Use sourceImage directly (no background removal)
+        const processedImage = sourceImage;
+        
         // Generate unique background for each image if cycling is enabled
         let currentBackgroundImage = backgroundImage;
         if (shouldCycleBackgrounds && generatedBackgroundImage) {
@@ -1062,11 +988,11 @@ async function processImages() {
         
         if (enableSlicing.checked) {
             // Detect slices and create all variants
-            const slices = detectSlices(sourceImage);
+            const slices = detectSlices(processedImage);
             console.log(`Found ${slices.length} slices`);
             
             // Create base image (all behind)
-            const allBehindCanvas = createSlicedImage(sourceImage, 'all-behind', slices, currentBackgroundImage);
+            const allBehindCanvas = createSlicedImage(processedImage, 'all-behind', slices, -1, currentBackgroundImage);
             processedCanvases.push({
                 canvas: allBehindCanvas,
                 filename: sourceFile.name,
@@ -1096,7 +1022,7 @@ async function processImages() {
             
             // Create individual slice variants
             for (let sliceIdx = 0; sliceIdx < slices.length; sliceIdx++) {
-                const sliceCanvas = createSlicedImage(sourceImage, 'single-front', slices, sliceIdx, currentBackgroundImage);
+                const sliceCanvas = createSlicedImage(processedImage, 'single-front', slices, sliceIdx, currentBackgroundImage);
                 processedCanvases.push({
                     canvas: sliceCanvas,
                     filename: sourceFile.name,
@@ -1127,7 +1053,7 @@ async function processImages() {
             }
         } else {
             // Simple processing without slicing
-            const canvas = createProcessedImage(sourceImage, currentBackgroundImage);
+            const canvas = createProcessedImage(processedImage, currentBackgroundImage);
             processedCanvases.push({
                 canvas: canvas,
                 filename: sourceFile.name,
@@ -1288,14 +1214,16 @@ function detectSlices(sourceImg) {
     return slices;
 }
 
-function createSlicedImage(sourceImg, mode, slices, sliceIndex = -1) {
+function createSlicedImage(sourceImg, mode, slices, sliceIndex = -1, bgImage = null) {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 64;
     const ctx = canvas.getContext('2d');
 
-    if (backgroundImage) {
-        ctx.drawImage(backgroundImage, 0, 0, 64, 64);
+    // Use provided background or fall back to global background
+    const backgroundToUse = bgImage || backgroundImage;
+    if (backgroundToUse) {
+        ctx.drawImage(backgroundToUse, 0, 0, 64, 64);
     }
 
     ctx.drawImage(sourceImg, 0, 0, 64, 64);
@@ -1360,65 +1288,70 @@ async function downloadAllAsZip(processedCanvases, saveAs = false) {
             groupedImages[baseName] = [];
         }
         groupedImages[baseName].push({
-            ...item,
-            globalIndex: index
+            canvas: item.canvas,
+            suffix: item.suffix
         });
     });
-    
-    let globalCounter = 1;
-    
-    for (const [baseName, images] of Object.entries(groupedImages)) {
-        for (let i = 0; i < images.length; i++) {
-            const item = images[i];
-            
-            let layerIndex = 0;
-            if (item.suffix && item.suffix.includes('_front')) {
-                const sliceMatch = item.suffix.match(/slice(\d+)_front/);
-                if (sliceMatch) {
-                    layerIndex = parseInt(sliceMatch[1]);
-                }
-            }
-            
-            const foregroundNum = String(globalCounter).padStart(3, '0');
-            const layerNum = String(layerIndex).padStart(3, '0');
-            const filename = `Badge${foregroundNum}-${layerNum}.png`;
-            
-            const blob = await new Promise(resolve => {
-                item.canvas.toBlob(resolve);
-            });
-            folder.file(filename, blob);
-        }
-        globalCounter++;
+
+    Object.keys(groupedImages).forEach(baseName => {
+        groupedImages[baseName].forEach(item => {
+            const dataUrl = item.canvas.toDataURL('image/png');
+            const filename = `${baseName}${item.suffix}.png`;
+            folder.file(filename, dataUrl.split(',')[1], {base64: true});
+        });
+    });
+
+    if (generatedBorderImage) {
+        const borderCanvas = document.createElement('canvas');
+        borderCanvas.width = 64;
+        borderCanvas.height = 64;
+        const borderCtx = borderCanvas.getContext('2d');
+        borderCtx.drawImage(generatedBorderImage, 0, 0);
+        
+        const borderDataUrl = borderCanvas.toDataURL('image/png');
+        folder.file('generated_border.png', borderDataUrl.split(',')[1], {base64: true});
     }
 
-    const content = await zip.generateAsync({ type: 'blob' });
-    
-    if (saveAs) {
-        if ('showSaveFilePicker' in window) {
-            try {
-                const fileHandle = await window.showSaveFilePicker({
-                    suggestedName: 'bordered_images.zip',
-                    types: [{
-                        description: 'ZIP files',
-                        accept: { 'application/zip': ['.zip'] }
-                    }]
-                });
-                const writable = await fileHandle.createWritable();
-                await writable.write(content);
-                await writable.close();
-                return;
-            } catch (err) {
-                console.log('Save As cancelled or not supported, using regular download');
-            }
-        }
+    if (generatedBackgroundImage) {
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = 64;
+        bgCanvas.height = 64;
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCtx.drawImage(generatedBackgroundImage, 0, 0);
+        
+        const bgDataUrl = bgCanvas.toDataURL('image/png');
+        folder.file('generated_background.png', bgDataUrl.split(',')[1], {base64: true});
     }
+
+    const blob = await zip.generateAsync({type: 'blob'});
     
-    const url = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bordered_images.zip';
-    a.click();
-    URL.revokeObjectURL(url);
+    if (saveAs && 'showSaveFilePicker' in window) {
+        try {
+            const fileHandle = await window.showSaveFilePicker({
+                types: [{
+                    description: 'ZIP files',
+                    accept: {'application/zip': ['.zip']}
+                }]
+            });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+        } catch (err) {
+            console.error('Save As failed:', err);
+            fallbackDownload(blob);
+        }
+    } else {
+        fallbackDownload(blob);
+    }
+
+    function fallbackDownload(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'processed_images.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
 
 async function downloadAllIndividually(processedCanvases) {
@@ -1460,6 +1393,30 @@ async function downloadAllIndividually(processedCanvases) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
         globalCounter++;
+    }
+    
+    // Download generated border if it exists
+    if (generatedBorderImage) {
+        const borderCanvas = document.createElement('canvas');
+        borderCanvas.width = 64;
+        borderCanvas.height = 64;
+        const borderCtx = borderCanvas.getContext('2d');
+        borderCtx.drawImage(generatedBorderImage, 0, 0);
+        
+        downloadCanvas(borderCanvas, 'generated_border.png');
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Download generated background if it exists
+    if (generatedBackgroundImage) {
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = 64;
+        bgCanvas.height = 64;
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCtx.drawImage(generatedBackgroundImage, 0, 0);
+        
+        downloadCanvas(bgCanvas, 'generated_background.png');
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     status.textContent = `Downloaded ${processedCanvases.length} image(s) individually!`;
