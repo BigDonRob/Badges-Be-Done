@@ -118,17 +118,6 @@ Each region becomes an optional extra layer.
 
 ---
 
-## Background Removal (Optional)
-
-For screenshots or images with solid backgrounds:
-
-* Detects if transparency already exists and skips if so
-* Uses AI segmentation to remove background
-* Runs locally
-* Usually ~1 second per image after model loads
-
----
-
 ## Typical Uses
 
 **Quick Badge**
@@ -148,7 +137,7 @@ For screenshots or images with solid backgrounds:
 
 * Generate border
 * Generate background
-* Remove screenshot background
+* (Upload pre-removed background image)
 * Slice overlaps
 * Export variants
 
@@ -164,9 +153,15 @@ Badge001-001.png  ← Breakout layer 1
 Badge001-002.png  ← Breakout layer 2
 ```
 
+**Downloads Include:**
+
+* All processed images (with proper naming)
+* Generated border (if created) → `generated_border.png`
+* Generated background (if created) → `generated_background.png`
+
 ---
 
-## Technical Notes (Light Version)
+## Technical Notes
 
 * Output size: 64×64
 * Processing: Browser only (no uploads to servers)
@@ -174,6 +169,7 @@ Badge001-002.png  ← Breakout layer 2
 * Backgrounds support seeded variation
 * Works with most browser image formats
 * Save-As works best in Chrome / Edge (fallback download exists)
+* No external dependencies or AI processing
 
 ---
 
