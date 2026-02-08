@@ -245,6 +245,35 @@
 
         <div class="upload-section">
             <h2>3. Upload Images to Process</h2>
+            
+            <!-- Tips Section -->
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--accent-primary);">
+                <h3 style="color: var(--text-primary); margin-top: 0; margin-bottom: 10px;">💡 Tips for Best Results</h3>
+                
+                <div style="color: var(--text-secondary); font-size: 0.9em; line-height: 1.5;">
+                    <p><strong>Image Preparation:</strong></p>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        <li>Crop foreground images to <strong>1:1 ratio</strong> (square) for best badge results</li>
+                        <li>Use <strong>PNG format</strong> with transparency for clean overlays</li>
+                        <li>Upload images with transparent backgrounds to allow slicing variations</li>
+                    </ul>
+                    
+                    <p><strong>Background Removal:</strong></p>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        <li>Free tool: <a href="https://www.remove.bg/" target="_blank" style="color: var(--accent-primary); text-decoration: none;">www.remove.bg</a> - Works well for most images</li>
+                        <li>AI tools work best with clear subject/background separation</li>
+                    </ul>
+                    
+                    <p><strong>Processing Order:</strong></p>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        <li>1. Generate/upload border</li>
+                        <li>2. Generate/upload background</li>
+                        <li>3. Upload prepared foreground images</li>
+                        <li>4. Process with optional slicing</li>
+                    </ul>
+                </div>
+            </div>
+            
             <div class="file-input-wrapper">
                 <input type="file" id="imagesInput" accept="image/*" multiple>
                 <label for="imagesInput" class="file-button">Choose Images</label>
@@ -258,7 +287,7 @@
                     <span style="font-weight: 600;">Enable Slicing (generates breakout layer variations)</span>
                 </label>
                 <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px; margin-left: 30px;">
-                    Detects where foreground overlaps with border and creates separate layers for each overlap region (3px minimum, no size limit).
+                    Detects where foreground overlaps with border and creates separate layers for each overlap region
                 </p>
             </div>
             
