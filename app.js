@@ -1176,8 +1176,6 @@ function detectSlices(sourceImg) {
     const visited = new Uint8Array(64 * 64);
     const slices = [];
     
-    const MIN_SLICE_SIZE = 3;
-
     for (let y = 0; y < 64; y++) {
         for (let x = 0; x < 64; x++) {
             const index = y * 64 + x;
@@ -1203,9 +1201,7 @@ function detectSlices(sourceImg) {
                 }
                 
                 const size = slicePixels.size;
-                if (size >= MIN_SLICE_SIZE) {
-                    slices.push(slicePixels);
-                }
+                slices.push(slicePixels);
             }
         }
     }
