@@ -36,6 +36,38 @@
             <span class="session-status" id="sessionStatus"></span>
         </div>
 
+        <!-- ─── IMAGE SORTER ───────────────────────────────────────────────── -->
+        <div class="upload-section sorter-section">
+            <h2>🗂 Image Sorter</h2>
+            <p class="section-desc">
+                Pre-process large image folders before importing: removes duplicates,
+                filters skewed aspect ratios, and buckets by resolution.
+                Runs locally — nothing is uploaded.
+            </p>
+
+            <div class="sorter-card" id="sorterCard">
+                <div class="sorter-os-label" id="sorterOsLabel">Detecting OS…</div>
+
+                <div class="sorter-downloads" id="sorterDownloads">
+                    <!-- Populated by JS -->
+                </div>
+
+                <details class="sorter-details">
+                    <summary>How to use</summary>
+                    <div class="sorter-instructions" id="sorterInstructions">
+                        <!-- Populated by JS -->
+                    </div>
+                </details>
+
+                <details class="sorter-details">
+                    <summary>All platforms</summary>
+                    <div class="sorter-all-links" id="sorterAllLinks">
+                        <!-- Populated by JS -->
+                    </div>
+                </details>
+            </div>
+        </div>
+
         <!-- ─── 1: BACKGROUND LAYERS ─────────────────────────────────────── -->
         <div class="upload-section">
             <h2>1. Background Layers</h2>
@@ -215,6 +247,129 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- ─── IMAGE SORTER SCRIPT ───────────────────────────────────────────── -->
+    <script>
+    (function () {
+        // ── Config ────────────────────────────────────────────────────────────────
+        // Point this at your GitHub releases page.
+        // Files must be named exactly as built by the Actions workflow.
+        const BASE = 'https://github.com/bbd-dev/badges-be-done/releases/latest/download';
+
+        const BUILDS = {
+            windows: {
+                label:    'Windows (64-bit)',
+                icon:     '🪟',
+                files: [
+                    { name: 'imgsorter-windows.exe', label: 'One-time use',  flag: '--once',  desc: 'Runs once, then self-deletes.' },
+                    { name: 'imgsorter-windows.exe', label: 'Keep on desktop', flag: '',      desc: 'Stays on disk for repeated use.' },
+                ],
+                instructions: `
+                    <ol>
+                        <li>Download the version you want above.</li>
+                        <li><strong>One-time:</strong> double-click to run, or drag your image folder onto it.
+                            It will self-delete after finishing.</li>
+                        <li><strong>Keep:</strong> move it anywhere convenient (Desktop, a tools folder, etc.)
+                            and drag your image folder onto it whenever you need it.</li>
+                        <li>Windows may show a SmartScreen warning on first run —
+                            click <em>More info → Run anyway</em>.</li>
+                        <li>Your sorted images appear in a <code>_sorted</code> folder
+                            next to your original folder.</li>
+                    </ol>`
+            },
+            mac: {
+                label:    'macOS (Universal)',
+                icon:     '🍎',
+                files: [
+                    { name: 'imgsorter-mac', label: 'One-time use',    flag: '--once', desc: 'Runs once, then self-deletes.' },
+                    { name: 'imgsorter-mac', label: 'Keep on desktop', flag: '',       desc: 'Stays on disk for repeated use.' },
+                ],
+                instructions: `
+                    <ol>
+                        <li>Download the version you want.</li>
+                        <li>Open Terminal, navigate to the download, and run:<br>
+                            <code>chmod +x imgsorter-mac</code></li>
+                        <li>macOS will block it on first run — go to
+                            <em>System Settings → Privacy & Security → Open Anyway</em>.</li>
+                        <li>Run it:<br>
+                            <code>./imgsorter-mac /path/to/your/images</code><br>
+                            Or add <code>--once</code> to self-delete after:<br>
+                            <code>./imgsorter-mac --once /path/to/images</code></li>
+                        <li>Sorted images appear in <code>yourfolder_sorted/</code> next to the original.</li>
+                    </ol>`
+            },
+            linux: {
+                label:    'Linux (x64)',
+                icon:     '🐧',
+                files: [
+                    { name: 'imgsorter-linux', label: 'One-time use',    flag: '--once', desc: 'Runs once, then self-deletes.' },
+                    { name: 'imgsorter-linux', label: 'Keep on desktop', flag: '',       desc: 'Stays on disk for repeated use.' },
+                ],
+                instructions: `
+                    <ol>
+                        <li>Download and make executable:<br>
+                            <code>chmod +x imgsorter-linux</code></li>
+                        <li>Run it:<br>
+                            <code>./imgsorter-linux /path/to/images</code><br>
+                            Or one-time use:<br>
+                            <code>./imgsorter-linux --once /path/to/images</code></li>
+                        <li>Sorted images appear in <code>yourfolder_sorted/</code>.</li>
+                    </ol>`
+            }
+        };
+
+        // ── Detect platform ───────────────────────────────────────────────────────
+        function detectPlatform() {
+            const ua = (navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
+            if (ua.includes('win'))   return 'windows';
+            if (ua.includes('mac'))   return 'mac';
+            if (ua.includes('linux')) return 'linux';
+            return 'windows'; // safe default
+        }
+
+        // ── Render ────────────────────────────────────────────────────────────────
+        function render() {
+            const platform = detectPlatform();
+            const build    = BUILDS[platform];
+
+            document.getElementById('sorterOsLabel').textContent =
+                `${build.icon}  Detected: ${build.label}`;
+
+            // Download buttons
+            const dlEl = document.getElementById('sorterDownloads');
+            dlEl.innerHTML = build.files.map(f => `
+                <div class="sorter-dl-row">
+                    <a class="sorter-dl-btn ${f.flag ? 'sorter-dl-once' : 'sorter-dl-keep'}"
+                       href="${BASE}/${f.name}"
+                       download="${f.name}">
+                        ⬇ ${f.label}
+                    </a>
+                    <span class="sorter-dl-desc">${f.desc}
+                        ${f.flag ? `<br><code>Run with: ${f.flag}</code>` : ''}
+                    </span>
+                </div>
+            `).join('');
+
+            // Instructions
+            document.getElementById('sorterInstructions').innerHTML = build.instructions;
+
+            // All platforms
+            document.getElementById('sorterAllLinks').innerHTML = Object.entries(BUILDS)
+                .filter(([k]) => k !== platform)
+                .map(([, b]) => `
+                    <div class="sorter-alt-row">
+                        <strong>${b.icon} ${b.label}</strong>
+                        ${b.files.map(f =>
+                            `<a href="${BASE}/${f.name}" download="${f.name}">${f.label}</a>`
+                        ).join(' · ')}
+                    </div>
+                `).join('');
+        }
+
+        render();
+    })();
+    </script>
+    
     <script type="module" src="app.js"></script>
 </body>
 </html>

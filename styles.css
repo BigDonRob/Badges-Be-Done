@@ -1062,3 +1062,82 @@ input[type="file"] {
 
 .slice-kbd-hint { color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.75em; }
 .slice-modal-buttons { display: flex; align-items: center; }
+
+/* ─── Image Sorter Styles ───────────────────────────────────────────── */
+
+.sorter-section { border-left: 3px solid var(--accent-primary); }
+
+.sorter-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 12px;
+}
+
+.sorter-os-label {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.sorter-downloads { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+
+.sorter-dl-row { display: flex; align-items: flex-start; gap: 14px; }
+
+.sorter-dl-btn {
+    display: inline-block;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 0.88em;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.sorter-dl-keep {
+    background: var(--accent-primary);
+    color: var(--bg-main);
+}
+.sorter-dl-once {
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+}
+.sorter-dl-btn:hover { filter: brightness(1.15); }
+
+.sorter-dl-desc {
+    font-size: 0.82em;
+    color: var(--text-secondary);
+    padding-top: 4px;
+    line-height: 1.5;
+}
+.sorter-dl-desc code {
+    background: var(--bg-secondary);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.sorter-details {
+    margin-top: 10px;
+    font-size: 0.88em;
+    color: var(--text-secondary);
+}
+.sorter-details summary { cursor: pointer; color: var(--text-primary); }
+
+.sorter-instructions ol { padding-left: 18px; line-height: 1.9; margin: 10px 0 0; }
+.sorter-instructions code {
+    background: var(--bg-secondary);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.sorter-alt-row { margin-top: 8px; }
+.sorter-alt-row a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    margin-left: 4px;
+}
+.sorter-alt-row a:hover { text-decoration: underline; }
