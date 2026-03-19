@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badges-Be-Done</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Badges-Be-Done</h1>
+        <p class="subtitle">Procedural badge compositing, batch-ready.</p>
+
+        <!-- ─── COLOR REFERENCE ──────────────────────────────────────────── -->
+        <div class="upload-section ref-section">
+            <h2>🎨 Color Reference Image</h2>
+            <p class="section-desc">Optional source image used for color extraction across all generate layers.</p>
+            <div class="ref-row">
+                <div class="file-input-wrapper">
+                    <input type="file" id="colorRefInput" accept="image/*">
+                    <label for="colorRefInput" class="file-button">Choose Reference Image</label>
+                </div>
+                <span class="file-info" id="colorRefInfo">No file selected</span>
+                <div class="ref-preview" id="colorRefPreview">
+                    <img id="colorRefPreviewImg" alt="Color reference">
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── SESSION SAVE / LOAD ──────────────────────────────────────── -->
+        <div class="session-bar">
+            <span class="session-bar-label">WIP Session</span>
+            <button class="session-btn session-btn--save" id="saveSessionBtn">💾 Save Session</button>
+            <label class="session-btn session-btn--load" for="loadSessionInput">📂 Load Session</label>
+            <input type="file" id="loadSessionInput" accept=".json" style="position:absolute;opacity:0;width:0;height:0;">
+            <span class="session-status" id="sessionStatus"></span>
+        </div>
+
+        <!-- ─── IMAGE SORTER ───────────────────────────────────────────────── -->
+        <div class="upload-section sorter-section">
+            <h2>🗂 Image Sorter</h2>
+            <p class="section-desc">
+                Pre-process large image folders before importing: removes duplicates,
+                filters skewed aspect ratios, and buckets by resolution.
+                Runs locally — nothing is uploaded.
+            </p>
+
+            <div class="sorter-card" id="sorterCard">
+                <div class="sorter-os-label" id="sorterOsLabel">Detecting OS…</div>
+
+                <div class="sorter-downloads" id="sorterDownloads">
+                    <!-- Populated by JS -->
+                </div>
+
+                <details class="sorter-details">
+                    <summary>How to use</summary>
+                    <div class="sorter-instructions" id="sorterInstructions">
+                        <!-- Populated by JS -->
+                    </div>
+                </details>
+
+                <details class="sorter-details">
+                    <summary>All platforms</summary>
+                    <div class="sorter-all-links" id="sorterAllLinks">
+                        <!-- Populated by JS -->
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- ─── 1: BACKGROUND LAYERS ─────────────────────────────────────── -->
+        <div class="upload-section">
+            <h2>1. Background Layers</h2>
+            <p class="section-desc">Compiled bottom-up. Not used for intersection detection.</p>
+            <div id="bgLayerList" class="layer-list"></div>
+            <button class="add-layer-btn" id="addBgLayerBtn">+ New Background Layer</button>
+            <div style="margin-top:14px;">
+                <button id="cycleBackgrounds" class="toggle-btn">Cycle Backgrounds</button>
+                <p class="setting-hint">Regenerates all generate-type background layers with unique seeds per batch image.</p>
+            </div>
+            <div class="ls-preview-wrap">
+                <span class="ls-preview-label">Compiled Background Preview</span>
+                <canvas id="bgPreviewCanvas" class="ls-preview-canvas" width="256" height="256"></canvas>
+            </div>
+        </div>
+
+        <!-- ─── 2: MIDGROUND IMAGES ──────────────────────────────────────── -->
+        <div class="upload-section">
+            <h2>2. Midground Images</h2>
+
+            <details class="resources-tip" style="margin-bottom:20px;">
+                <summary>💡 Tips for best results</summary>
+                <div class="resources-body">
+                    <p><strong>Image prep:</strong> Crop to 1:1 ratio. Use PNG with transparency for clean overlays.</p>
+                    <p style="margin-top:8px;"><strong>Background removal:</strong> <a href="https://www.remove.bg/" target="_blank">remove.bg</a> works well for most images.</p>
+                    <p style="margin-top:8px;"><strong>Top row — Slice Detection On:</strong> Opens the slice preview modal before processing. Choose which overlap regions get promoted above the border.</p>
+                    <p style="margin-top:8px;"><strong>Bottom row — No Slice Detection:</strong> Composited directly, no modal.</p>
+                </div>
+            </details>
+
+            <div class="dz-group dz-group-slice">
+                <div class="dz-group-label">✂ Slice Detection On</div>
+                <div class="dz-row">
+                    <div class="drop-zone" id="dzResizeSlice">
+                        <div class="drop-zone-icon">⤢</div>
+                        <div class="drop-zone-title">Resize &amp; Slice</div>
+                        <p class="drop-zone-desc">Fills 64×64 · slice on</p>
+                        <label for="inputResizeSlice" class="file-button">Choose or drop Files</label>
+                        <input type="file" id="inputResizeSlice" accept="image/*" multiple style="display:none;">
+                        <div class="drop-zone-footer">
+                            <span class="drop-zone-count" id="countResizeSlice">0 files</span>
+                            <button class="clear-btn" id="clearResizeSlice">Clear</button>
+                        </div>
+                        <div class="file-list" id="fileListResizeSlice"></div>
+                    </div>
+                    <div class="drop-zone" id="dzCenterSlice">
+                        <div class="drop-zone-icon">⊙</div>
+                        <div class="drop-zone-title">Center &amp; Slice</div>
+                        <p class="drop-zone-desc">Native size centered · slice on</p>
+                        <label for="inputCenterSlice" class="file-button">Choose or drop Files</label>
+                        <input type="file" id="inputCenterSlice" accept="image/*" multiple style="display:none;">
+                        <div class="drop-zone-footer">
+                            <span class="drop-zone-count" id="countCenterSlice">0 files</span>
+                            <button class="clear-btn" id="clearCenterSlice">Clear</button>
+                        </div>
+                        <div class="file-list" id="fileListCenterSlice"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dz-group dz-group-noslice">
+                <div class="dz-group-label">▫ No Slice Detection</div>
+                <div class="dz-row">
+                    <div class="drop-zone" id="dzResizeNoSlice">
+                        <div class="drop-zone-icon">⤢</div>
+                        <div class="drop-zone-title">Resize</div>
+                        <p class="drop-zone-desc">Fills 64×64 · no slicing</p>
+                        <label for="inputResizeNoSlice" class="file-button">Choose or drop Files</label>
+                        <input type="file" id="inputResizeNoSlice" accept="image/*" multiple style="display:none;">
+                        <div class="drop-zone-footer">
+                            <span class="drop-zone-count" id="countResizeNoSlice">0 files</span>
+                            <button class="clear-btn" id="clearResizeNoSlice">Clear</button>
+                        </div>
+                        <div class="file-list" id="fileListResizeNoSlice"></div>
+                    </div>
+                    <div class="drop-zone" id="dzCenterNoSlice">
+                        <div class="drop-zone-icon">⊙</div>
+                        <div class="drop-zone-title">Center</div>
+                        <p class="drop-zone-desc">Native size centered · no slicing</p>
+                        <label for="inputCenterNoSlice" class="file-button">Choose or drop Files</label>
+                        <input type="file" id="inputCenterNoSlice" accept="image/*" multiple style="display:none;">
+                        <div class="drop-zone-footer">
+                            <span class="drop-zone-count" id="countCenterNoSlice">0 files</span>
+                            <button class="clear-btn" id="clearCenterNoSlice">Clear</button>
+                        </div>
+                        <div class="file-list" id="fileListCenterNoSlice"></div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="total-files-info" id="totalFilesInfo" style="display:none;"></p>
+        </div>
+
+        <!-- ─── 3: INTERACTION BORDERS ───────────────────────────────────── -->
+        <div class="upload-section">
+            <h2>3. Interaction Borders / Icons</h2>
+            <p class="section-desc">Compiled before slice detection. Overlapping midground pixels can be promoted to front layers.</p>
+            
+            <details class="resources-tip" style="margin-bottom:18px;">
+                <summary>📦 Where to find pixel art borders</summary>
+                <div class="resources-body">
+                    <p>Accepts any 64×64 RGBA PNG. Only non-transparent pixels show — the rest composites cleanly over the background and midground.</p>
+                    <ul>
+                        <li><a href="https://opengameart.org" target="_blank">OpenGameArt.org</a> — search "border" or "frame", filter by CC0</li>
+                        <li><a href="https://kenney.nl/assets" target="_blank">Kenney.nl</a> — UI packs often include pixel borders</li>
+                        <li><a href="https://itch.io/game-assets/free/tag-pixel-art" target="_blank">itch.io free pixel assets</a> — search "border frame"</li>
+                        <li><a href="https://lospec.com" target="_blank">Lospec.com</a> — community pixel art tools and palettes</li>
+                        <li><strong>Aseprite / Photoshop / GIMP</strong> — draw your own at 64×64</li>
+                    </ul>
+                </div>
+            </details>
+            
+            <div id="intersectionLayerList" class="layer-list"></div>
+            <button class="add-layer-btn" id="addIntersectionLayerBtn">+ New Border / Icon Layer</button>
+            <div class="ls-preview-wrap">
+                <span class="ls-preview-label">Compiled Preview (Background + Interaction)</span>
+                <canvas id="intersectionPreviewCanvas" class="ls-preview-canvas" width="256" height="256"></canvas>
+            </div>
+        </div>
+
+        <!-- ─── 4: OVERLAY LAYERS ────────────────────────────────────────── -->
+        <div class="upload-section">
+            <h2>4. Overlay Layers</h2>
+            <p class="section-desc">Applied after all slicing. Always renders on top. Not used for overlap detection.</p>
+            <div id="overlayLayerList" class="layer-list"></div>
+            <button class="add-layer-btn" id="addOverlayLayerBtn">+ New Overlay Layer</button>
+            <div class="ls-preview-wrap">
+                <span class="ls-preview-label">Full Stack Preview (Background + Interaction + Overlay)</span>
+                <canvas id="overlayPreviewCanvas" class="ls-preview-canvas" width="256" height="256"></canvas>
+            </div>
+        </div>
+
+        <!-- ─── PROCESS ───────────────────────────────────────────────────── -->
+        <div class="upload-section">
+            <h2>Process</h2>
+            <button class="process-button" id="processButton" disabled>Process Images</button>
+            <div class="status" id="status"></div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText"></div>
+            </div>
+        </div>
+
+        <!-- ─── RESULTS ─────────────────────────────────────────────────── -->
+        <div class="results" id="results">
+            <h2>Processed Images</h2>
+            <div class="image-grid" id="imageGrid"></div>
+            <button class="download-all" id="downloadAll">Download All as ZIP</button>
+            <button class="download-all" id="downloadSaveAs" style="margin-left:10px;">Save As ZIP</button>
+            <button class="download-all" id="downloadIndividual" style="margin-left:10px;">Download All (Individual)</button>
+        </div>
+    </div>
+
+    <!-- ─── SLICE MODAL ──────────────────────────────────────────────────── -->
+    <div id="sliceModal" class="slice-modal">
+        <div class="slice-modal-content">
+            <div class="slice-modal-header">
+                <h3>Select Slice Variants</h3>
+                <div class="slice-nav">
+                    <button id="slicePrevBtn" class="slice-nav-btn" disabled>◀</button>
+                    <span id="sliceImageCounter">Image 1 / 1</span>
+                    <button id="sliceNextBtn" class="slice-nav-btn">▶</button>
+                </div>
+            </div>
+            <div class="slice-preview-area">
+                <canvas id="slicePreviewCanvas" width="256" height="256"></canvas>
+            </div>
+            <div id="sliceCheckboxes" class="slice-checkboxes"></div>
+            <div class="slice-modal-footer">
+                <span class="slice-kbd-hint">Arrow keys: navigate &nbsp;·&nbsp; Enter: confirm ALL &nbsp;·&nbsp; Esc: cancel</span>
+                <div class="slice-modal-buttons">
+                    <button id="sliceConfirm" class="process-button" style="font-size:0.9em;padding:10px 28px;">✓ Confirm</button>
+                    <button id="sliceCancel" class="download-all" style="margin-left:10px;">✕ Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- ─── IMAGE SORTER SCRIPT ───────────────────────────────────────────── -->
+    <script>
+    (function () {
+        // ── Config ────────────────────────────────────────────────────────────────
+        // Point this at your GitHub releases page.
+        // Files must be named exactly as built by the Actions workflow.
+        const BASE = 'https://github.com/bbd-dev/badges-be-done/releases/latest/download';
+        
+        // Fallback for testing when releases don't exist yet
+        const FALLBACK = 'javascript:void(0);';
+
+        const BUILDS = {
+            windows: {
+                label:    'Windows (64-bit)',
+                icon:     '🪟',
+                files: [
+                    { name: 'imgsorter-windows.exe', label: 'One-time use',  flag: '--once',  desc: 'Runs once, then self-deletes.' },
+                    { name: 'imgsorter-windows.exe', label: 'Keep on desktop', flag: '',      desc: 'Stays on disk for repeated use.' },
+                ],
+                instructions: `
+                    <ol>
+                        <li>Download the version you want above.</li>
+                        <li><strong>One-time:</strong> double-click to run, or drag your image folder onto it.
+                            It will self-delete after finishing.</li>
+                        <li><strong>Keep:</strong> move it anywhere convenient (Desktop, a tools folder, etc.)
+                            and drag your image folder onto it whenever you need it.</li>
+                        <li>Windows may show a SmartScreen warning on first run —
+                            click <em>More info → Run anyway</em>.</li>
+                        <li>Your sorted images appear in a <code>_sorted</code> folder
+                            next to your original folder.</li>
+                    </ol>`
+            },
+            mac: {
+                label:    'macOS (Universal)',
+                icon:     '🍎',
+                files: [
+                    { name: 'imgsorter-mac', label: 'One-time use',    flag: '--once', desc: 'Runs once, then self-deletes.' },
+                    { name: 'imgsorter-mac', label: 'Keep on desktop', flag: '',       desc: 'Stays on disk for repeated use.' },
+                ],
+                instructions: `
+                    <ol>
+                        <li>Download the version you want.</li>
+                        <li>Open Terminal, navigate to the download, and run:<br>
+                            <code>chmod +x imgsorter-mac</code></li>
+                        <li>macOS will block it on first run — go to
+                            <em>System Settings → Privacy & Security → Open Anyway</em>.</li>
+                        <li>Run it:<br>
+                            <code>./imgsorter-mac /path/to/your/images</code><br>
+                            Or add <code>--once</code> to self-delete after:<br>
+                            <code>./imgsorter-mac --once /path/to/images</code></li>
+                        <li>Sorted images appear in <code>yourfolder_sorted/</code> next to the original.</li>
+                    </ol>`
+            },
+            linux: {
+                label:    'Linux (x64)',
+                icon:     '🐧',
+                files: [
+                    { name: 'imgsorter-linux', label: 'One-time use',    flag: '--once', desc: 'Runs once, then self-deletes.' },
+                    { name: 'imgsorter-linux', label: 'Keep on desktop', flag: '',       desc: 'Stays on disk for repeated use.' },
+                ],
+                instructions: `
+                    <ol>
+                        <li>Download and make executable:<br>
+                            <code>chmod +x imgsorter-linux</code></li>
+                        <li>Run it:<br>
+                            <code>./imgsorter-linux /path/to/images</code><br>
+                            Or one-time use:<br>
+                            <code>./imgsorter-linux --once /path/to/images</code></li>
+                        <li>Sorted images appear in <code>yourfolder_sorted/</code>.</li>
+                    </ol>`
+            }
+        };
+
+        // ── Detect platform ───────────────────────────────────────────────────────
+        function detectPlatform() {
+            const ua = (navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
+            if (ua.includes('win'))   return 'windows';
+            if (ua.includes('mac'))   return 'mac';
+            if (ua.includes('linux')) return 'linux';
+            return 'windows'; // safe default
+        }
+
+        // ── Render ────────────────────────────────────────────────────────────────
+        function render() {
+            const platform = detectPlatform();
+            const build    = BUILDS[platform];
+
+            document.getElementById('sorterOsLabel').textContent =
+                `${build.icon}  Detected: ${build.label}`;
+
+            // Download buttons
+            const dlEl = document.getElementById('sorterDownloads');
+            dlEl.innerHTML = build.files.map(f => `
+                <div class="sorter-dl-row">
+                    <a class="sorter-dl-btn ${f.flag ? 'sorter-dl-once' : 'sorter-dl-keep'}"
+                       href="${BASE}/${f.name}"
+                       onclick="this.href === '${BASE}/${f.name}' && !this.href.startsWith('blob:') ? alert('Create a GitHub release first!\\n\\nGo to:\\n1. Repository → Releases\\n2. Click "Create a new release"\\n3. Tag: v1.0.0\\n4. Publish\\n\\nThen downloads will work.') : true; return false;"
+                       download="${f.name}">
+                        ⬇ ${f.label}
+                    </a>
+                    <span class="sorter-dl-desc">${f.desc}
+                        ${f.flag ? `<br><code>Run with: ${f.flag}</code>` : ''}
+                    </span>
+                </div>
+            `).join('');
+
+            // Instructions
+            document.getElementById('sorterInstructions').innerHTML = build.instructions;
+
+            // All platforms
+            document.getElementById('sorterAllLinks').innerHTML = Object.entries(BUILDS)
+                .filter(([k]) => k !== platform)
+                .map(([, b]) => `
+                    <div class="sorter-alt-row">
+                        <strong>${b.icon} ${b.label}</strong>
+                        ${b.files.map(f =>
+                            `<a href="${BASE}/${f.name}" download="${f.name}">${f.label}</a>`
+                        ).join(' · ')}
+                    </div>
+                `).join('');
+        }
+
+        render();
+    })();
+    </script>
+    
+    <script type="module" src="app.js"></script>
+</body>
+</html>
