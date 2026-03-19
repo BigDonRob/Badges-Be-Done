@@ -1,68 +1,155 @@
-name: Build Releases
+name: Release & Deploy
 
+# ─── Triggers ─────────────────────────────────────────────────────────────────
+# Tag push (v*) → full pipeline: build binaries, create release, deploy site
+# Push to main  → site deploy only (no new binaries needed)
+# Manual        → choose below which jobs to run
 on:
   push:
     tags: ['v*']
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy_only:
+        description: 'Skip binary build, deploy site only'
+        type: boolean
+        default: false
+
+# Required for GitHub Pages deploy and release creation
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Only one Pages deploy at a time; don't cancel in-progress so we don't
+# leave a half-deployed site on concurrent pushes.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+# ─── Jobs ─────────────────────────────────────────────────────────────────────
 
 jobs:
-  build:
-    name: Cross-compile all platforms
+
+  # ── 1. Cross-compile Go binaries ──────────────────────────────────────────
+  build-binaries:
+    name: Build binaries
     runs-on: ubuntu-latest
+
+    # Only run on tag pushes, not plain branch pushes or deploy-only manual runs
+    if: |
+      startsWith(github.ref, 'refs/tags/') ||
+      (github.event_name == 'workflow_dispatch' && !inputs.deploy_only)
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
+          cache: true
 
-      - name: Build all targets
+      - name: Build all platforms
+        # All Go source is in the sorter/ subdirectory.
+        # Adjust the path if yours differs.
+        working-directory: sorter
         run: |
-          mkdir -p dist
-          cd imgsorter
+          mkdir -p ../dist
 
-          # Windows x64
           GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ../dist/imgsorter-windows.exe .
-
-          # macOS Intel
           GOOS=darwin  GOARCH=amd64 go build -ldflags="-s -w" -o ../dist/imgsorter-mac-intel .
+          GOOS=darwin  GOARCH=arm64 go build -ldflags="-s -w" -o ../dist/imgsorter-mac-arm   .
+          GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o ../dist/imgsorter-linux     .
 
-          # macOS Apple Silicon
-          GOOS=darwin  GOARCH=arm64 go build -ldflags="-s -w" -o ../dist/imgsorter-mac-arm .
+          echo "── Build sizes ──────────────────────────"
+          ls -lh ../dist/
 
-          # Linux x64
-          GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o ../dist/imgsorter-linux .
+      # lipo isn't available on ubuntu-latest; ship both Intel and ARM
+      # and let the panel serve the right one per detected OS.
+      - name: Create macOS universal binary
+        run: cp dist/imgsorter-mac-arm dist/imgsorter-mac
 
-          cd ..
-          ls -lh dist/
-
-      # macOS universal binary (Intel + Apple Silicon in one file)
-      - name: Make macOS universal binary
-        run: |
-          brew install llvm || true
-          if command -v lipo &>/dev/null; then
-            lipo -create -output dist/imgsorter-mac \
-              dist/imgsorter-mac-intel \
-              dist/imgsorter-mac-arm
-          else
-            cp dist/imgsorter-mac-arm dist/imgsorter-mac
-          fi
-
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release and attach binaries
+        uses: softprops/action-gh-release@v2
         with:
-          name: imgsorter-builds
-          path: dist/
+          name: "Image Sorter ${{ github.ref_name }}"
+          body: |
+            ## Image Sorter ${{ github.ref_name }}
 
-      # Auto-create a GitHub Release on tag push
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
+            Pre-process large image folders before importing into Badges-Be-Done.
+
+            | Platform | File |
+            |----------|------|
+            | Windows 64-bit | `imgsorter-windows.exe` |
+            | macOS Universal (Apple Silicon) | `imgsorter-mac` |
+            | macOS Intel | `imgsorter-mac-intel` |
+            | Linux 64-bit | `imgsorter-linux` |
+
+            ### Usage
+            ```
+            imgsorter-windows.exe [--once] [--dry] [--copy] [--ps2fix] <folder>
+            ```
+            - `--once`   Self-deletes after processing (one-time use)
+            - `--dry`    Preview without moving anything
+            - `--copy`   Copy files instead of moving them
+            - `--ps2fix` Fix PCSX2 alpha dumps (doubles alpha channel)
           files: |
             dist/imgsorter-windows.exe
             dist/imgsorter-mac
             dist/imgsorter-mac-intel
-            dist/imgsorter-mac-arm
             dist/imgsorter-linux
+          fail_on_unmatched_files: true
+
+  # ── 2. Build the site ─────────────────────────────────────────────────────
+  build-site:
+    name: Build site
+    runs-on: ubuntu-latest
+    # Always runs — on tag push, branch push, or manual trigger
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare site files
+        run: |
+          mkdir -p _site
+
+          # Copy all badge builder web files.
+          # Adjust this list if your file layout differs.
+          cp index.html        _site/
+          cp app.js            _site/
+          cp styles.css        _site/
+          cp state.js          _site/
+          cp stacks.js         _site/
+          cp layers.js         _site/
+          cp backgrounds.js    _site/
+          cp borders.js        _site/
+          cp colors.js         _site/
+          cp constants.js      _site/
+          cp download.js       _site/
+          cp dropzones.js      _site/
+          cp imageUtils.js     _site/
+          cp processing.js     _site/
+          cp save.js           _site/
+          cp slicing.js        _site/
+
+          echo "── Site contents ────────────────────────"
+          ls -lh _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site/
+
+  # ── 3. Deploy to GitHub Pages ─────────────────────────────────────────────
+  deploy-site:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-site   # wait for site build; does NOT wait for binaries
+                        # (binaries go to Releases, not Pages)
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4

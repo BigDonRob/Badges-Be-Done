@@ -58,13 +58,6 @@
                         <!-- Populated by JS -->
                     </div>
                 </details>
-
-                <details class="sorter-details">
-                    <summary>All platforms</summary>
-                    <div class="sorter-all-links" id="sorterAllLinks">
-                        <!-- Populated by JS -->
-                    </div>
-                </details>
             </div>
         </div>
 
@@ -263,17 +256,11 @@
             windows: {
                 label:    'Windows (64-bit)',
                 icon:     '🪟',
-                files: [
-                    { name: 'imgsorter-windows.exe', label: 'One-time use',  flag: '--once',  desc: 'Runs once, then self-deletes.' },
-                    { name: 'imgsorter-windows.exe', label: 'Keep on desktop', flag: '',      desc: 'Stays on disk for repeated use.' },
-                ],
+                file:     'imgsorter-windows.exe',
                 instructions: `
                     <ol>
-                        <li>Download the version you want above.</li>
-                        <li><strong>One-time:</strong> double-click to run, or drag your image folder onto it.
-                            It will self-delete after finishing.</li>
-                        <li><strong>Keep:</strong> move it anywhere convenient (Desktop, a tools folder, etc.)
-                            and drag your image folder onto it whenever you need it.</li>
+                        <li>Download the Windows executable.</li>
+                        <li>Double-click to run, or drag your image folder onto it.</li>
                         <li>Windows may show a SmartScreen warning on first run —
                             click <em>More info → Run anyway</em>.</li>
                         <li>Your sorted images appear in a <code>_sorted</code> folder
@@ -283,39 +270,30 @@
             mac: {
                 label:    'macOS (Universal)',
                 icon:     '🍎',
-                files: [
-                    { name: 'imgsorter-mac', label: 'One-time use',    flag: '--once', desc: 'Runs once, then self-deletes.' },
-                    { name: 'imgsorter-mac', label: 'Keep on desktop', flag: '',       desc: 'Stays on disk for repeated use.' },
-                ],
+                file:     'imgsorter-mac',
                 instructions: `
                     <ol>
-                        <li>Download the version you want.</li>
+                        <li>Download the macOS executable.</li>
                         <li>Open Terminal, navigate to the download, and run:<br>
                             <code>chmod +x imgsorter-mac</code></li>
                         <li>macOS will block it on first run — go to
                             <em>System Settings → Privacy & Security → Open Anyway</em>.</li>
                         <li>Run it:<br>
-                            <code>./imgsorter-mac /path/to/your/images</code><br>
-                            Or add <code>--once</code> to self-delete after:<br>
-                            <code>./imgsorter-mac --once /path/to/images</code></li>
+                            <code>./imgsorter-mac /path/to/your/images</code></li>
                         <li>Sorted images appear in <code>yourfolder_sorted/</code> next to the original.</li>
                     </ol>`
             },
             linux: {
                 label:    'Linux (x64)',
                 icon:     '🐧',
-                files: [
-                    { name: 'imgsorter-linux', label: 'One-time use',    flag: '--once', desc: 'Runs once, then self-deletes.' },
-                    { name: 'imgsorter-linux', label: 'Keep on desktop', flag: '',       desc: 'Stays on disk for repeated use.' },
-                ],
+                file:     'imgsorter-linux',
                 instructions: `
                     <ol>
-                        <li>Download and make executable:<br>
+                        <li>Download the Linux executable.</li>
+                        <li>Make executable:<br>
                             <code>chmod +x imgsorter-linux</code></li>
                         <li>Run it:<br>
-                            <code>./imgsorter-linux /path/to/images</code><br>
-                            Or one-time use:<br>
-                            <code>./imgsorter-linux --once /path/to/images</code></li>
+                            <code>./imgsorter-linux /path/to/images</code></li>
                         <li>Sorted images appear in <code>yourfolder_sorted/</code>.</li>
                     </ol>`
             }
@@ -340,34 +318,20 @@
 
             // Download buttons
             const dlEl = document.getElementById('sorterDownloads');
-            dlEl.innerHTML = build.files.map(f => `
+            dlEl.innerHTML = `
                 <div class="sorter-dl-row">
-                    <a class="sorter-dl-btn ${f.flag ? 'sorter-dl-once' : 'sorter-dl-keep'}"
-                       href="${BASE}/${f.name}"
-                       onclick="this.href === '${BASE}/${f.name}' && !this.href.startsWith('blob:') ? alert('Create a GitHub release first!\\n\\nGo to:\\n1. Repository → Releases\\n2. Click "Create a new release"\\n3. Tag: v1.0.0\\n4. Publish\\n\\nThen downloads will work.') : true; return false;"
-                       download="${f.name}">
-                        ⬇ ${f.label}
+                    <a class="sorter-dl-btn sorter-dl-keep"
+                       href="${BASE}/${build.file}"
+                       onclick="this.href === '${BASE}/${build.file}' && !this.href.startsWith('blob:') ? alert('Create a GitHub release first!\\n\\nGo to:\\n1. Repository → Releases\\n2. Click "Create a new release"\\n3. Tag: v1.0.0\\n4. Publish\\n\\nThen downloads will work.') : true; return false;"
+                       download="${build.file}">
+                        ⬇ Download ${build.label}
                     </a>
-                    <span class="sorter-dl-desc">${f.desc}
-                        ${f.flag ? `<br><code>Run with: ${f.flag}</code>` : ''}
-                    </span>
+                    <span class="sorter-dl-desc">Download the image sorter for ${build.label}</span>
                 </div>
-            `).join('');
+            `;
 
             // Instructions
             document.getElementById('sorterInstructions').innerHTML = build.instructions;
-
-            // All platforms
-            document.getElementById('sorterAllLinks').innerHTML = Object.entries(BUILDS)
-                .filter(([k]) => k !== platform)
-                .map(([, b]) => `
-                    <div class="sorter-alt-row">
-                        <strong>${b.icon} ${b.label}</strong>
-                        ${b.files.map(f =>
-                            `<a href="${BASE}/${f.name}" download="${f.name}">${f.label}</a>`
-                        ).join(' · ')}
-                    </div>
-                `).join('');
         }
 
         render();
